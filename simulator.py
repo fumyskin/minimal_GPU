@@ -1,162 +1,215 @@
+"""Lane-accurate SIMD simulator for the frozen ISA. Executes the actual machine
+code across N masked lanes, exactly as the RTL will. This is the golden
+reference the Phase 3 hardware gets diffed against.
+
+Run:  python simulator.py
+"""
+
 import argparse
-import struct
+import fixedpoint as fp
+import isa
+import image
+import palette
 
-# Q4.14
-# fixed 
-
-# fixed point data
-W = 18
-F = 14
-ARITH = "sat" #sat = saturate, wrap = two's complement wraparound
-
-INT_MIN = -(1<<(W-1)) 
-INT_MAX = (1<<(W-1)) - 1
-ONE = 1 << F
-FOUR = 4 << F # python interpets 4 as binary !
-
-def _reconfig(w, f, arith):
-    global W, F, ARITH, INT_MIN, INT_MAX, ONE, FOUR
-    W = w
-    F = f
-    ARITH = arith
-    INT_MIN = -(1<<(W-1))
-    INT_MAX = (1<<(W-1)) - 1
-    ONE = 1 << F
-    FOUR = 4 << F
-
-
-def clamp(v):
-    if ARITH == "sat":
-        if v > INT_MAX:
-            return INT_MAX
-        if v < INT_MIN:
-            return INT_MIN
-        return v
-    v &= (1 << W) - 1
-    return v - (1 << W) if (v & (1 << (W-1))) else v
-
-def to_fixed(real):
-    # real -> raw fixed-point. Done at 'compile time' by the host, so rounding a constant here is fine
-    # the datapath never does this.
-    return clamp(int(round(real * ONE)))
-
-def fadd(a, b):
-    return clamp(a + b)
-
-def fsub(a, b):
-    return clamp(a - b)
-
-def fmul(a, b):
-    return clamp((a * b) >> F)
+# The frozen reference kernel (see isa_spec.md sec.5). CX0/CY0/FB_BASE are
+# per-launch parameters; DX and MAX_ITER are assemble-time defines.
+KERNEL = """
+        MASKALL
+        LANEID  V9
+        LI      V0, CX0
+        LI      V8, DX
+        MUL     V8, V9, V8
+        ADD     V0, V0, V8
+        LI      V1, CY0
+        LI      V2, #0
+        LI      V3, #0
+        LI      V7, #0
+        LI      V10, 4.0
+        LI      V12, #1
+        SETLOOP MAX_ITER
+loop:   MUL     V4, V2, V2
+        MUL     V5, V3, V3
+        ADD     V11, V4, V5
+        ADD     V7, V7, V12
+        ESCAPE  V11, V10
+        MUL     V6, V2, V3
+        ADD     V6, V6, V6
+        SUB     V8, V4, V5
+        ADD     V8, V8, V0
+        ADD     V6, V6, V1
+        MOV     V2, V8
+        MOV     V3, V6
+        ENDLOOP loop
+        STORE   V7, FB_BASE
+        HALT
+"""
 
 
-# Mandelbrot escape-time kernel, written to match the SIMD ISA kernel
-def escape_iterations(cx, cy, max_iter):
-    x = 0
-    y = 0
-    color = 0
-    escaped = False
+class GPU:
+    def __init__(self, n_lanes, fb_size):
+        self.N = n_lanes
+        self.V = [[0] * n_lanes for _ in range(16)]
+        self.M = [1] * n_lanes
+        self.LC = 0
+        self.PC = 0
+        self.fb = bytearray(fb_size)
+        self.halted = False
 
+    def run(self, code, max_steps=5_000_000):
+        self.PC, self.halted, steps = 0, False, 0
+        while not self.halted:
+            if self.PC >= len(code):
+                raise RuntimeError("PC ran past the program without HALT")
+            self._exec(code[self.PC])
+            steps += 1
+            if steps > max_steps:
+                raise RuntimeError("step limit exceeded -- runaway loop?")
+
+    def _exec(self, word):
+        O = isa.OPCODES
+        opc, rd, ra, rb, imm = isa.decode(word)
+        N, V, M = self.N, self.V, self.M
+        advance = True
+
+        if opc == O["NOP"]:
+            pass
+        elif opc == O["LI"]:
+            raw = isa.decode_li_raw(word)
+            for k in range(N):
+                V[rd][k] = raw
+        elif opc == O["LANEID"]:
+            for k in range(N):
+                V[rd][k] = k << fp.F
+        elif opc == O["MOV"]:
+            for k in range(N):
+                if M[k]:
+                    V[rd][k] = V[ra][k]
+        elif opc == O["ADD"]:
+            for k in range(N):
+                if M[k]:
+                    V[rd][k] = fp.fadd(V[ra][k], V[rb][k])
+        elif opc == O["SUB"]:
+            for k in range(N):
+                if M[k]:
+                    V[rd][k] = fp.fsub(V[ra][k], V[rb][k])
+        elif opc == O["MUL"]:
+            for k in range(N):
+                if M[k]:
+                    V[rd][k] = fp.fmul(V[ra][k], V[rb][k])
+        elif opc == O["ESCAPE"]:
+            for k in range(N):
+                if M[k] and V[ra][k] > V[rb][k]:
+                    M[k] = 0
+        elif opc == O["MASKALL"]:
+            for k in range(N):
+                M[k] = 1
+        elif opc == O["SETLOOP"]:
+            self.LC = imm
+        elif opc == O["ENDLOOP"]:
+            self.LC = (self.LC - 1) & 0x3FFF
+            if self.LC != 0 and any(M):
+                self.PC, advance = imm, False
+        elif opc == O["STORE"]:
+            for k in range(N):
+                self.fb[imm + k] = V[ra][k] & 0xFF
+        elif opc == O["HALT"]:
+            self.halted = True
+        else:
+            raise RuntimeError(f"bad opcode {opc:#x} at PC={self.PC}")
+
+        if advance and not self.halted:
+            self.PC += 1
+
+
+def oracle(cx0_raw, cy_raw, lane, dx_raw, max_iter):
+    """Independent per-pixel reference using the SAME hardware coordinate gen:
+    cx = cx0 + lane*dx in fixed point. Proves the interpreter, not the math."""
+    cx = fp.fadd(cx0_raw, fp.fmul(lane << fp.F, dx_raw))
+    cy = cy_raw
+    x = y = color = 0
     for _ in range(max_iter):
-        x2 = fmul(x, x)                 # MUL V4, V2, V2
-        y2 = fmul(y, y)                 # MUL V5, V3, V3
-        mag = fadd(x2, y2)              # ADD V11, V4, V5
-        color += 1                      # ADD V7, V7, 1
-        if mag > FOUR:                  # ESCAPE V11, V10
-            escaped = True              
+        x2, y2 = fp.fmul(x, x), fp.fmul(y, y)
+        mag = fp.fadd(x2, y2)
+        color += 1
+        if mag > fp.FOUR:
             break
-        xy = fmul(x, y)                 # MUL V6, V2, V3
-        two_xy = fadd(xy, xy)           # ADD V6, V6, V6 (2xy)
-        x_new = fadd(fsub(x2, y2), cx)  # SUB then ADD cx (x^2 - y^2 + cx)
-        y_new = fadd(two_xy, cy)        # ADD cy (2xy + cy)
-        x, y = x_new, y_new             # MOV V2/V3 (masked commit)
-    return color, escaped
+        xy2 = fp.fadd(fp.fmul(x, y), fp.fmul(x, y))
+        x, y = fp.fadd(fp.fsub(x2, y2), cx), fp.fadd(xy2, cy)
+    return color & 0xFF
 
 
-
-def render(width, height, max_iter, view):
+def render(width, height, view, n_lanes, max_iter, verify=True):
+    assert width % n_lanes == 0, "width must be a multiple of the lane count"
+    assert width * height <= (1 << 14), "framebuffer exceeds 14-bit STORE address"
+    fp.set_mode(18, 14, "sat")
     x0, x1, y0, y1 = view
-    dx = (x1-x0) / width
-    dy = (y1-y0) / height
-    fb = bytearray(width*height) #framebuffer
-    for py in range(height):
-        cy = to_fixed(y0 + py * dy)
-        base = py * width
-        for px in range(width):
-            cx = to_fixed(x0 + px * dx)
-            color, escaped = escape_iterations(cx, cy, max_iter)
-            fb[base + px] = (color & 0xFF) if escaped else 0   # inside set -> 0
-    return fb
+    dx, dy = (x1 - x0) / width, (y1 - y0) / height
+    dx_raw = fp.to_fixed(dx)
+
+    code, params, _ = isa.assemble(KERNEL, defines={"MAX_ITER": max_iter, "DX": dx})
+    gpu = GPU(n_lanes, width * height)
+
+    mismatches = 0
+    for row in range(height):
+        cy = y0 + row * dy
+        cy_raw = fp.to_fixed(cy)
+        for col0 in range(0, width, n_lanes):
+            cx0_raw = fp.to_fixed(x0 + col0 * dx)
+            isa.patch(code, params["CX0"], cx0_raw)
+            isa.patch(code, params["CY0"], cy_raw)
+            isa.patch(code, params["FB_BASE"], row * width + col0)
+            gpu.run(code)
+            if verify:
+                for k in range(n_lanes):
+                    if gpu.fb[row * width + col0 + k] != oracle(cx0_raw, cy_raw, k, dx_raw, max_iter):
+                        mismatches += 1
+    return gpu.fb, mismatches
 
 
-def palette(v, max_iter):
-    """Smooth display palette. v==0 (inside the set) -> black."""
-    if v == 0:
-        return (0, 0, 0)
-    t = v / max_iter
-    r = int(9 * (1 - t) * t * t * t * 255)
-    g = int(15 * (1 - t) * (1 - t) * t * t * 255)
-    b = int(8.5 * (1 - t) * (1 - t) * (1 - t) * t * 255)
-    return (min(r, 255), min(g, 255), min(b, 255))
- 
+def scanout(fb, cw, ch, scale, rom):
+    """Model the VGA scan-out hardware: 5x pixel replication + palette ROM.
+    Display pixel (X,Y) shows framebuffer pixel (X//scale, Y//scale) -- in RTL
+    that's two mod-scale counters, no divider. Returns the exact RGB888 the
+    monitor shows (4-bit channels expanded for the PNG)."""
+    dw, dh = cw * scale, ch * scale
+    out = bytearray(dw * dh * 3)
+    for Y in range(dh):
+        srow = (Y // scale) * cw
+        for X in range(dw):
+            r, g, b = palette.rgb12_to_rgb888(*rom[fb[srow + (X // scale)]])
+            o = (Y * dw + X) * 3
+            out[o], out[o + 1], out[o + 2] = r, g, b
+    return out, dw, dh
 
 
-def write_raw(path, fb):
-    """The raw 8-bit framebuffer -- this is what you'll diff RTL output against."""
-    with open(path, "wb") as f:
-        f.write(fb)
- 
- 
-def write_png(path, fb, width, height, max_iter):
-    """Minimal zlib+PNG writer (no third-party deps) for a quick visual check."""
-    import zlib
-    raw = bytearray()
-    for py in range(height):
-        raw.append(0)                      # filter type 0 for the scanline
-        base = py * width
-        for px in range(width):
-            raw += bytes(palette(fb[base + px], max_iter))
- 
-    def chunk(tag, data):
-        c = tag + data
-        return struct.pack(">I", len(data)) + c + struct.pack(">I", zlib.crc32(c) & 0xffffffff)
- 
-    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)  # 8-bit RGB
-    with open(path, "wb") as f:
-        f.write(b"\x89PNG\r\n\x1a\n")
-        f.write(chunk(b"IHDR", ihdr))
-        f.write(chunk(b"IDAT", zlib.compress(bytes(raw), 9)))
-        f.write(chunk(b"IEND", b""))
- 
- 
 def main():
-    ap = argparse.ArgumentParser(description="Fixed-point Mandelbrot golden model")
-    ap.add_argument("--width", type=int, default=320)
-    ap.add_argument("--height", type=int, default=240)
+    ap = argparse.ArgumentParser(description="SIMD sim + Approach A VGA preview")
+    ap.add_argument("--width", type=int, default=128, help="compute width")
+    ap.add_argument("--height", type=int, default=96, help="compute height")
+    ap.add_argument("--scale", type=int, default=5, help="pixel-replication factor")
     ap.add_argument("--max-iter", type=int, default=100)
-    ap.add_argument("--bits", type=int, default=18, help="total word width W")
-    ap.add_argument("--frac", type=int, default=14, help="fractional bits F")
-    ap.add_argument("--arith", choices=["sat", "wrap"], default="sat")
-    ap.add_argument("--out", default="mandelbrot")
+    ap.add_argument("--lanes", type=int, default=4)
+    ap.add_argument("--out", default="sim_render")
     args = ap.parse_args()
- 
-    _reconfig(args.bits, args.frac, args.arith)
- 
-    # Classic full view, aspect-matched to the image
+
     x0, x1 = -2.5, 1.0
-    span_y = (x1 - x0) * args.height / args.width
-    y0, y1 = -span_y / 2, span_y / 2
-    view = (x0, x1, y0, y1)
- 
-    fb = render(args.width, args.height, args.max_iter, view)
-    write_raw(args.out + ".bin", fb)
-    write_png(args.out + ".png", fb, args.width, args.height, args.max_iter)
-    print(f"Q{args.bits - args.frac}.{args.frac}  arith={args.arith}  "
-          f"{args.width}x{args.height}  max_iter={args.max_iter}")
-    print(f"wrote {args.out}.bin (raw 8-bit framebuffer) and {args.out}.png")
- 
- 
+    span_y = (x1 - x0) * args.height / args.width      # 4:3 to match 640x480
+    view = (x0, x1, -span_y / 2, span_y / 2)
+
+    fb, mismatches = render(args.width, args.height, view, args.lanes, args.max_iter)
+    rom = palette.build_rom(args.max_iter)
+    rgb, dw, dh = scanout(fb, args.width, args.height, args.scale, rom)
+
+    image.write_raw(args.out + ".bin", fb)                                  # golden FB
+    image.write_png(args.out + "_fb.png", fb, args.width, args.height, args.max_iter)
+    image.write_rgb_png(args.out + "_vga.png", rgb, dw, dh)                 # monitor preview
+    palette.export_mem(rom, args.out + "_palette.mem")                      # for the HW ROM
+
+    print(f"compute {args.width}x{args.height} -> display {dw}x{dh} ({args.scale}x)  "
+          f"lanes={args.lanes}  max_iter={args.max_iter}")
+    print(f"interpreter vs oracle mismatches: {mismatches}")
+    print(f"wrote {args.out}.bin, {args.out}_fb.png, {args.out}_vga.png, {args.out}_palette.mem")
+
+
 if __name__ == "__main__":
     main()
- 
-
