@@ -19,9 +19,9 @@ entity vga_timing is
         pix_ce : in std_logic; -- pixel_rate enable (25 Mhz)
         hsync : out std_logic; -- active low
         vsync : out std_logic; -- active low
-        vide_on : out std_logic; -- high in the visible area
-        px : out unsigned(9 downto 0); -- 0..639 when vide_on
-        py : out unsigned(9 downto 0) -- 0..479 when video_on
+        video_on : out std_logic; -- high in the visible area
+        px : out unsigned(9 downto 0); -- 0..639 when video_on
+        py : out unsigned(9 downto 0); -- 0..479 when video_on
         frame_start : out std_logic -- 1-cycle pulse at (0,0)
     );
 end entity;
@@ -46,7 +46,7 @@ begin
             if rst = '1' then
                 hc <= 0;
                 vc <= 0;
-            elsif pix_Ce = '1' then
+            elsif pix_ce = '1' then
                 if hc = H_TOTAL -1 then
                     hc <= 0;
                     if vc = V_TOTAL -1 then
