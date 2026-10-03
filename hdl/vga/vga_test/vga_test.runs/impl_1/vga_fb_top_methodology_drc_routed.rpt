@@ -1,0 +1,151 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
+| Date         : Sat Oct  3 18:03:24 2026
+| Host         : MSI running 64-bit major release  (build 9200)
+| Command      : report_methodology -file vga_fb_top_methodology_drc_routed.rpt -pb vga_fb_top_methodology_drc_routed.pb -rpx vga_fb_top_methodology_drc_routed.rpx
+| Design       : vga_fb_top
+| Device       : xc7z020clg484-1
+| Speed File   : -1
+| Design State : Fully Routed
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Report Methodology
+
+Table of Contents
+-----------------
+1. REPORT SUMMARY
+2. REPORT DETAILS
+
+1. REPORT SUMMARY
+-----------------
+            Netlist: netlist
+          Floorplan: design_1
+      Design limits: <entire design considered>
+             Max checks: <unlimited>
+             Checks found: 23
++-----------+----------+--------------------------------------------+--------+
+| Rule      | Severity | Description                                | Checks |
++-----------+----------+--------------------------------------------+--------+
+| SYNTH-6   | Warning  | Timing of a RAM block might be sub-optimal | 8      |
+| TIMING-18 | Warning  | Missing input or output delay              | 15     |
++-----------+----------+--------------------------------------------+--------+
+
+2. REPORT DETAILS
+-----------------
+SYNTH-6#1 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_fb/mem_reg_0_0, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#2 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_fb/mem_reg_0_1, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#3 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_fb/mem_reg_0_2, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#4 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_fb/mem_reg_0_3, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#5 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_fb/mem_reg_0_4, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#6 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_fb/mem_reg_0_5, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#7 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_fb/mem_reg_0_6, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#8 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_fb/mem_reg_0_7, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+TIMING-18#1 Warning
+Missing input or output delay  
+An input delay is missing on rst relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#2 Warning
+Missing input or output delay  
+An output delay is missing on vga_b[0] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#3 Warning
+Missing input or output delay  
+An output delay is missing on vga_b[1] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#4 Warning
+Missing input or output delay  
+An output delay is missing on vga_b[2] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#5 Warning
+Missing input or output delay  
+An output delay is missing on vga_b[3] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#6 Warning
+Missing input or output delay  
+An output delay is missing on vga_g[0] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#7 Warning
+Missing input or output delay  
+An output delay is missing on vga_g[1] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#8 Warning
+Missing input or output delay  
+An output delay is missing on vga_g[2] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#9 Warning
+Missing input or output delay  
+An output delay is missing on vga_g[3] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#10 Warning
+Missing input or output delay  
+An output delay is missing on vga_hs relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#11 Warning
+Missing input or output delay  
+An output delay is missing on vga_r[0] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#12 Warning
+Missing input or output delay  
+An output delay is missing on vga_r[1] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#13 Warning
+Missing input or output delay  
+An output delay is missing on vga_r[2] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#14 Warning
+Missing input or output delay  
+An output delay is missing on vga_r[3] relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+TIMING-18#15 Warning
+Missing input or output delay  
+An output delay is missing on vga_vs relative to the rising and/or falling clock edge(s) of clk_100.
+Related violations: <none>
+
+
