@@ -1,0 +1,4 @@
+vivado_proj/
+*.jou
+*.log 
+.Xil/
