@@ -1,0 +1,10 @@
+v 4
+file . "hdl/simd/compute_core.vhd" "0624516c3490db02299b139f33efd6bba98890f9" "20261004124941.721":
+  entity compute_core at 13( 632) + 0 on 33;
+  architecture rtl of compute_core at 37( 1317) + 0 on 34;
+file . "hdl/simd/alu.vhd" "2a205b7f7594c0e7e813f1effe522faff80a9999" "20261004124941.684":
+  entity alu at 8( 410) + 0 on 31;
+  architecture rtl of alu at 28( 961) + 0 on 32;
+file . "hdl/simd/tb_compute_core.vhd" "4afcf037098c74d773ce5737db488962d8d496c9" "20261004124941.845":
+  entity tb_compute_core at 8( 396) + 0 on 35;
+  architecture sim of tb_compute_core at 16( 525) + 0 on 36;
