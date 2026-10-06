@@ -6,10 +6,10 @@ Run:  python simulator.py
 """
 
 import argparse
-import fixedpoint as fp
-import isa
-import image
-import palette
+import sim.fixedpoint as fp
+import sim.isa as isa
+import sim.image as image
+import sim.palette as palette
 
 # The frozen reference kernel (see isa_spec.md sec.5). CX0/CY0/FB_BASE are
 # per-launch parameters; DX and MAX_ITER are assemble-time defines.

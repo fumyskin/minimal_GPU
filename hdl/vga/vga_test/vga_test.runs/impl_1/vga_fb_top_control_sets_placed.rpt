@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date         : Sat Oct  3 18:03:01 2026
+| Date         : Sun Oct  4 15:36:50 2026
 | Host         : MSI running 64-bit major release  (build 9200)
 | Command      : report_control_sets -verbose -file vga_fb_top_control_sets_placed.rpt
 | Design       : vga_fb_top
@@ -75,8 +75,8 @@ Table of Contents
 +--------------------+------------------------+------------------+------------------+----------------+--------------+
 |  clk_100_IBUF_BUFG | u_timing/pix_ce        |                  |                1 |              2 |         2.00 |
 |  clk_100_IBUF_BUFG |                        |                  |                3 |              5 |         1.67 |
-|  clk_100_IBUF_BUFG | u_timing/pix_ce        | rst_IBUF         |                4 |             10 |         2.50 |
 |  clk_100_IBUF_BUFG | u_timing/vc[9]_i_1_n_0 | rst_IBUF         |                4 |             10 |         2.50 |
+|  clk_100_IBUF_BUFG | u_timing/pix_ce        | rst_IBUF         |                4 |             10 |         2.50 |
 |  clk_100_IBUF_BUFG | u_timing/pix_ce        | vga_r[3]_i_1_n_0 |               11 |             12 |         1.09 |
 +--------------------+------------------------+------------------+------------------+----------------+--------------+
 

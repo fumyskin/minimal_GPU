@@ -2,7 +2,7 @@
 and a two-pass assembler. The simulator (and later the RTL decoder) must agree
 with encode()/decode() here. No opcode enum is duplicated anywhere else."""
 
-import fixedpoint as fp
+import sim.fixedpoint as fp
 
 OPCODES = {
     "NOP": 0x00, 

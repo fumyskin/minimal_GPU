@@ -10,6 +10,18 @@
 -- One instruction per RUN cycle (ROM read is combinational); STORE takes N
 -- cycles, one framebuffer write per lane through the single write port.
 
+-- SIMD compute core: non-pipelined multi-cycle FSM driving N parallel lanes.
+-- Executes the instruction ROM once per start pulse (one kernel launch = one
+-- strip), writing results to the framebuffer port, then pulses done.
+--
+-- Decode matches isa.py exactly:
+--   word = opcode(31:26) rd(25:22) ra(21:18) rb(17:14) imm(13:0)
+--   LI    raw18  = word(17:0)                      (rb|imm are contiguous)
+--   STORE base22 = word(25:22) & word(17:14) & word(13:0)   (ra skipped)
+--
+-- One instruction per RUN cycle (ROM read is combinational); STORE takes N
+-- cycles, one framebuffer write per lane through the single write port.
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -30,7 +42,12 @@ entity compute_core is
     done    : out std_logic;              -- 1-cycle pulse at HALT
     fb_we   : out std_logic;
     fb_addr : out unsigned(21 downto 0);
-    fb_data : out std_logic_vector(7 downto 0)
+    fb_data : out std_logic_vector(7 downto 0);
+    -- instruction-memory write port (host/sequencer patches params before start).
+    -- Defaulted so a testbench that omits them sees a plain ROM (unit test intact).
+    imem_we    : in  std_logic := '0';
+    imem_waddr : in  natural   := 0;
+    imem_wdata : in  std_logic_vector(31 downto 0) := (others => '0')
   );
 end entity;
 
@@ -75,7 +92,9 @@ architecture rtl of compute_core is
     return m;
   end function;
 
-  constant ROM : rom_t := init_rom(INIT_FILE);
+  -- instruction memory: a RAM (initialized from the hex .mem) so the sequencer
+  -- can patch the per-strip parameter words while the core is idle.
+  signal imem : rom_t := init_rom(INIT_FILE);
 
   -- register file: N lanes x 16 x W bits
   type bank_t  is array(0 to 15) of signed(W - 1 downto 0);
@@ -108,7 +127,7 @@ architecture rtl of compute_core is
   signal any_active : std_logic;
 begin
   ------------------------------------------------------------------ decode
-  instr  <= ROM(pc);
+  instr  <= imem(pc);
   opcode <= to_integer(unsigned(instr(31 downto 26)));
   rd_i   <= to_integer(unsigned(instr(25 downto 22)));
   ra_i   <= to_integer(unsigned(instr(21 downto 18)));
@@ -155,6 +174,9 @@ begin
   begin
     if rising_edge(clk) then
       done <= '0';
+      if imem_we = '1' then                 -- host patches a parameter word (core idle)
+        imem(imem_waddr) <= imem_wdata;
+      end if;
       if rst = '1' then
         state <= IDLE;
         pc <= 0; lc <= (others => '0'); store_k <= 0;

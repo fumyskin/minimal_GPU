@@ -57,7 +57,6 @@ if {$::dispatch::connected} {
 
 OPTRACE "synth_1" START { ROLLUP_AUTO }
 set_param chipscope.maxJobs 4
-set_param xicom.use_bs_reader 1
 OPTRACE "Creating in-memory project" START { }
 create_project -in_memory -part xc7z020clg484-1
 
@@ -77,11 +76,16 @@ OPTRACE "Adding files" START { }
 read_mem {
   C:/fpga/minimal_GPU/data/palette.mem
   C:/fpga/minimal_GPU/data/fb_160.mem
+  C:/fpga/minimal_GPU/data/imem.mem
+  C:/fpga/minimal_GPU/data/fb_zeros.mem
+  C:/fpga/minimal_GPU/data/imem_template.mem
+  C:/fpga/minimal_GPU/data/core_expected.mem
+  C:/fpga/minimal_GPU/data/golden_small.mem
 }
 read_vhdl -library xil_defaultlib {
   C:/fpga/minimal_GPU/hdl/vga/framebuffer.vhd
-  C:/fpga/minimal_GPU/hdl/vga/palette_rom.vhd
   C:/fpga/minimal_GPU/hdl/vga/vga_timing.vhd
+  C:/fpga/minimal_GPU/hdl/vga/palette_rom.vhd
   C:/fpga/minimal_GPU/hdl/vga/vga_top.vhd
 }
 OPTRACE "Adding files" END { }

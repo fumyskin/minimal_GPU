@@ -1,10 +1,19 @@
 v 4
+file . "hdl/simd/tb_integration.vhd" "269d1c319557ac98dd1c2b48261fe2ded6b40aa6" "20261004132339.612":
+  entity tb_integration at 11( 607) + 0 on 31;
+  architecture sim of tb_integration at 19( 743) + 0 on 32;
+file . "hdl/vga/framebuffer.vhd" "749054bbbdb88424b3daf40b9be5683f687d682c" "20261004132339.612":
+  entity framebuffer at 9( 552) + 0 on 29;
+  architecture rtl of framebuffer at 34( 1321) + 0 on 30;
+file . "hdl/simd/strip_sequencer.vhd" "6dbf41cd1ac75c321aaa3fbf46166092ee36b67e" "20261004132339.611":
+  entity strip_sequencer at 18( 935) + 0 on 27;
+  architecture rtl of strip_sequencer at 48( 2011) + 0 on 28;
+file . "hdl/simd/compute_core.vhd" "31b533c6c2973355341b2c72a5fd715107b6fed6" "20261004132339.610":
+  entity compute_core at 25( 1288) + 0 on 25;
+  architecture rtl of compute_core at 54( 2317) + 0 on 26;
+file . "hdl/simd/alu.vhd" "74bc898a15059cbc285a357b9b5fca73702d5b3a" "20261004132339.608":
+  entity alu at 8( 417) + 0 on 23;
+  architecture rtl of alu at 28( 988) + 0 on 24;
 file . "hdl/simd/tb_compute_core.vhd" "43052eb1277f46a6d0b55d615b612e238012592a" "20261004124333.474":
   entity tb_compute_core at 8( 396) + 0 on 21;
   architecture sim of tb_compute_core at 16( 525) + 0 on 22;
-file . "hdl/simd/alu.vhd" "2a205b7f7594c0e7e813f1effe522faff80a9999" "20261004124333.309":
-  entity alu at 8( 410) + 0 on 17;
-  architecture rtl of alu at 28( 961) + 0 on 18;
-file . "hdl/simd/compute_core.vhd" "0624516c3490db02299b139f33efd6bba98890f9" "20261004124333.354":
-  entity compute_core at 13( 632) + 0 on 19;
-  architecture rtl of compute_core at 37( 1317) + 0 on 20;
