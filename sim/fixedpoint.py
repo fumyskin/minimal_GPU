@@ -15,14 +15,17 @@ def set_mode(w=18, f=14, arith="sat"):
 
 def _recompute():
     global INT_MIN, INT_MAX, ONE, FOUR
-    INT_MIN = -(1<<(W-1))
-    INT_MAX = (1<<(W-1))-1
-    ONE = 1 << F
-    FOUR = 4 << F
+    INT_MIN = -(1<<(W-1))       # 2^(W-1) = -2^17
+    INT_MAX = (1<<(W-1))-1      # 2^(W-1) -1 = 2^17 - 1
+    ONE = 1 << F                # 1.00000000000000
+    FOUR = 4 << F               # 4.00000000000000
 
 
 _recompute()
 
+# clamp() is applied after every operation to force the result back into 18 bits, 
+# the same way the hardware does. There are two possible ways, and the ARITH setting picks one:
+# "sat"	131071 (stuck at the max)	6.1 + 6.1 -> 7.99
 
 def clamp(v):
     if ARITH == "sat":
@@ -41,6 +44,11 @@ def to_fixed(real):
     # datapath never does this ???????
     return clamp(int(round(real * ONE)))
 
+# to_fixed(1.0)    -> 16384
+# to_fixed(-0.75)  -> -12288
+# to_fixed(0.5)    -> 8192
+# 0.75 in binary  =  0.11
+# × 2¹⁴ →  shift the point 14 places  →  11 0000 0000 0000  =  12288
 
 def fadd(a, b):
     return clamp(a + b)
