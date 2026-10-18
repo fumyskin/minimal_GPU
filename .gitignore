@@ -2,3 +2,5 @@ vivado_proj/
 *.jou
 *.log 
 .Xil/
+*.o
+*.vcd
