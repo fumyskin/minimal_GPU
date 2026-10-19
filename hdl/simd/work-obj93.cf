@@ -1,0 +1,4 @@
+v 4
+file . "alu.vhd" "049216b3f1a610788e1801948804b6aa84948635" "20261019073239.882":
+  entity alu at 1( 0) + 0 on 11;
+  architecture rtl of alu at 23( 590) + 0 on 12;
