@@ -40,6 +40,7 @@ entity compute_core is
     rst     : in  std_logic;
     start   : in  std_logic;              -- pulse to launch at PC=0
     done    : out std_logic;              -- 1-cycle pulse at HALT
+    -- framebuffer write port
     fb_we   : out std_logic;
     fb_addr : out unsigned(21 downto 0);
     fb_data : out std_logic_vector(7 downto 0);
@@ -62,6 +63,10 @@ architecture rtl of compute_core is
   -- instruction ROM, initialized from a hex .mem
   type rom_t is array(0 to ROM_DEPTH - 1) of std_logic_vector(31 downto 0);
 
+
+  -- runs once , before simulation and synthesis 
+  -- reads imem.mem -> turns each line of 8 hex characters into 32 bit word from isntruction memory
+  -- 
   impure function init_rom(fn : string) return rom_t is
     file     fh  : text open read_mode is fn;
     variable l   : line;
@@ -99,7 +104,10 @@ architecture rtl of compute_core is
   -- register file: N lanes x 16 x W bits
   type bank_t  is array(0 to 15) of signed(W - 1 downto 0);
   type lanes_t is array(0 to N - 1) of bank_t;
+  -- regs: 2d array holding 16 registers x W bits per lane; 
+  -- EVERY LANE HAS ITS OWN COPY OF r0-r15
   signal regs : lanes_t := (others => (others => (others => '0')));
+  -- mask, one bit per lane
   signal mask : std_logic_vector(N - 1 downto 0) := (others => '1');
 
   -- control state
@@ -107,7 +115,7 @@ architecture rtl of compute_core is
   signal state   : state_t := IDLE;
   signal pc      : integer range 0 to ROM_DEPTH - 1 := 0;
   signal lc      : unsigned(13 downto 0) := (others => '0');
-  signal store_k : integer range 0 to N - 1 := 0;
+  signal store_k : integer range 0 to N - 1 := 0;  -- which lane is curretnly being stored?
 
   -- combinational decode of ROM(pc)
   signal instr  : std_logic_vector(31 downto 0);
