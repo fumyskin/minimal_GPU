@@ -29,6 +29,8 @@ entity strip_sequencer is
     DXF   : integer := 358;       -- to_fixed(dx)   (per-lane / per-column step)
     DYF   : integer := 358;       -- to_fixed(dy)
     DXN   : integer := 1432;      -- N*DXF          (per-strip step)
+    CXC   : integer := -12206; -- fixed zoom point-> to_fixed(-0.745)
+    CYC   : integer := 1851 -- to_fixed(0.113)
     P_CX0 : integer := 2;         -- instruction index of  LI V0, CX0
     P_CY0 : integer := 6;         -- instruction index of  LI V1, CY0
     P_FB  : integer := 26         -- instruction index of  STORE V7, FB_BASE
@@ -37,6 +39,8 @@ entity strip_sequencer is
     clk            : in  std_logic;
     rst            : in  std_logic;
     core_done      : in  std_logic;
+    zoom_in        : in std_logic := '0';
+    zoom_reset     : in std_logic := '0';
     core_start     : out std_logic;
     imem_we        : out std_logic;
     imem_waddr     : out natural;
@@ -51,14 +55,23 @@ architecture rtl of strip_sequencer is
 
   signal row     : integer range 0 to IMG_H := 0;
   signal col0    : integer range 0 to IMG_W := 0;
+  signal pcnt    : integer range 0 to 2 := 0;
+
   signal cx0     : signed(17 downto 0) := to_signed(X0, 18);
   signal cy      : signed(17 downto 0) := to_signed(Y0, 18);
   signal fb_base : unsigned(21 downto 0) := (others => '0');
-  signal pcnt    : integer range 0 to 2 := 0;
+  
+  -- live view params
+  signal sx0  : signed(17 downto 0) := to_signed(X0, 18);
+  signal sy0  : signed(17 downto 0) := to_signed(Y0, 18);
+  signal sdxf : signed(17 downto 0) := to_signed(DXF, 18);
+  signal sdyf : signed(17 downto 0) := to_signed(DYF, 18);
+  signal sdxn : signed(17 downto 0) := to_signed(DXN, 18);
 
   -- instruction-word templates (opcode + register fields already in place)
   constant LI_V0 : unsigned(31 downto 0) := x"04000000";
   constant LI_V1 : unsigned(31 downto 0) := x"04400000";
+  constant LI_V8 : unsigned(31 downto 0) := x"06000000";   -- LI V8, imm (per-lane step)
   constant ST_V7 : unsigned(31 downto 0) := x"2C1C0000";
 
   function hw_li(tmpl : unsigned(31 downto 0); v : signed(17 downto 0))
@@ -77,6 +90,8 @@ architecture rtl of strip_sequencer is
   end function;
 begin
   process (clk)
+    variable ndxf, ndyf, nx0, ny0, ndxn : signed(17 downto 0);
+    -- also update the DX immediate the kernel loads (per-lane step = DXF)
   begin
     if rising_edge(clk) then
       -- defaults (overridden below per state)
@@ -87,8 +102,9 @@ begin
       if rst = '1' then
         state <= S_PATCH;
         row <= 0; col0 <= 0; pcnt <= 0;
+        sx0 <= to_signed(X0,18); sy0 <= to_signed(Y0,18);
+        sdxf <= to_signed(DXF,18); sdyf <= to_signed(DYF,18); sdxn <= to_signed(DXN,18);
         cx0 <= to_signed(X0, 18);
-        cy  <= to_signed(Y0, 18);
         fb_base <= (others => '0');
       else
         case state is
@@ -98,9 +114,10 @@ begin
             case pcnt is
               when 0 => imem_waddr <= P_CX0; imem_wdata <= hw_li(LI_V0, cx0);
               when 1 => imem_waddr <= P_CY0; imem_wdata <= hw_li(LI_V1, cy);
+              when 2 => imem_waddr <= P_DX;  imem_wdata <= hw_li(LI_V8, sdxf);
               when others => imem_waddr <= P_FB; imem_wdata <= hw_store(fb_base);
             end case;
-            if pcnt = 2 then
+            if pcnt = 3 then
               pcnt <= 0;
               state <= S_START;
             else
@@ -127,9 +144,9 @@ begin
               state <= S_PATCH;
             elsif row + 1 < IMG_H then
               row   <= row + 1;                          -- next row
-              cy    <= cy + to_signed(DYF, 18);
+              cy    <= cy + sdyf;
               col0  <= 0;
-              cx0   <= to_signed(X0, 18);
+              cx0   <= sx0;
               state <= S_PATCH;
             else
               state <= S_DONE;                           -- whole image done
@@ -138,6 +155,22 @@ begin
           ----------------------------------------------------------------
           when S_DONE =>
             rendering_done <= '1';
+            if zoom_in = '1' and sdxf > 1 then          -- zoom in (guard Q4.14 limit)
+              ndxf := shift_right(sdxf, 1);
+              ndyf := shift_right(sdyf, 1);
+              nx0  := to_signed(CXC,18) - resize(to_signed(IMG_W/2, 9) * ndxf, 18);
+              ny0  := to_signed(CYC,18) - resize(to_signed(IMG_H/2, 9) * ndyf, 18);
+              ndxn := resize(to_signed(N, 6) * ndxf, 18);
+              sdxf <= ndxf; sdyf <= ndyf; sdxn <= ndxn; sx0 <= nx0; sy0 <= ny0;
+              cx0 <= nx0; cy <= ny0; row <= 0; col0 <= 0; fb_base <= (others=>'0');
+              state <= S_PATCH;
+            elsif zoom_reset = '1' then                  -- back to base view
+              sx0 <= to_signed(X0,18); sy0 <= to_signed(Y0,18);
+              sdxf <= to_signed(DXF,18); sdyf <= to_signed(DYF,18); sdxn <= to_signed(DXN,18);
+              cx0 <= to_signed(X0,18); cy <= to_signed(Y0,18);
+              row <= 0; col0 <= 0; fb_base <= (others=>'0');
+              state <= S_PATCH;
+            end if; 
         end case;
       end if;
     end if;
