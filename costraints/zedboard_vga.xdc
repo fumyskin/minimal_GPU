@@ -33,7 +33,7 @@ set_property PACKAGE_PIN Y19  [get_ports vga_vs]
 
 set_property IOSTANDARD LVCMOS33 [get_ports {vga_r[*] vga_g[*] vga_b[*] vga_hs vga_vs}]
 
-## ---- Zoom pushbuttons (Zedboard PL buttons, bank 34, 1.8 V) ----
+## ---- Zoom pushbuttons (Zedboard PL buttons, bank 34, 2.5 V) ----
 ## BTNU -> zoom in, BTND -> reset to full view
-set_property -dict {PACKAGE_PIN T18 IOSTANDARD LVCMOS18} [get_ports btn_zoom_in]
-set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS18} [get_ports btn_zoom_reset]
+set_property -dict {PACKAGE_PIN T18 IOSTANDARD LVCMOS25} [get_ports btn_zoom_in]
+set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS25} [get_ports btn_zoom_reset]
