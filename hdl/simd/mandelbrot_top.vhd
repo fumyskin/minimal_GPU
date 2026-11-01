@@ -14,10 +14,10 @@ entity mandelbrot_top is
     N    : integer := 4
   );
   port (
-    clk_100 : in  std_logic;
-    rst     : in  std_logic;
-    btn_zoom_in: in std_logic;  -- push button: zoom in
-    btn_zoom_reset: in std_logic; -- button for back to full view
+    clk_100       : in  std_logic;
+    rst           : in  std_logic;
+    btn_zoom_in   : in  std_logic;        -- pushbutton: zoom in on the fixed point
+    btn_zoom_reset: in  std_logic;        -- pushbutton: back to the full view
     vga_hs  : out std_logic;
     vga_vs  : out std_logic;
     vga_r   : out std_logic_vector(3 downto 0);
@@ -50,9 +50,8 @@ architecture rtl of mandelbrot_top is
   signal imem_waddr        : natural;
   signal imem_wdata        : std_logic_vector(31 downto 0);
 
-  -- debouncer zoom
-  signal zoom_in_p, zoom_reset_p: std_logic;
-
+  -- debounced zoom pulses
+  signal zoom_in_p, zoom_reset_p : std_logic;
 begin
   -- 25 MHz pixel enable = 100 MHz / 4
   process (clk_100)
@@ -63,20 +62,21 @@ begin
   end process;
   pix_ce <= '1' when ce_cnt = 3 else '0';
 
-  ----------------------------------------------------------------- zoom buttons
-
-  u_db_in: entity work.debouncer
-      port map (clk => clk_100, din => btn_zoom_in, pulse => zoom_in_p);
-  u_db_rst: entity work.debouncer
-      port map (clk => clk_100, din => btn_zoom_reset, pulse => zoom_reset_p);
+  ---------------------------------------------------------------- zoom buttons
+  u_db_in : entity work.debouncer
+    port map (clk => clk_100, din => btn_zoom_in, pulse => zoom_in_p);
+  u_db_rst : entity work.debouncer
+    port map (clk => clk_100, din => btn_zoom_reset, pulse => zoom_reset_p);
 
   ---------------------------------------------------------------- compute side
   u_seq : entity work.strip_sequencer
     generic map (N => N, IMG_W => FB_W, IMG_H => 120,
-                 X0 => -40960, Y0 => -21504, DXF => 358, DYF => 358, DXN => 1432,
-                 P_CX0 => 2, P_CY0 => 6, P_FB => 26)
+                 X0 => -40846, Y0 => -19629, DXF => 358, DYF => 358, DXN => 1432,
+                 CXC => -12206, CYC => 1851,          -- fixed point (-0.745, 0.113)
+                 P_CX0 => 2, P_DX => 3, P_CY0 => 6, P_FB => 26)
     port map (clk => clk_100, rst => rst,
               core_done => core_done, core_start => core_start,
+              zoom_in => zoom_in_p, zoom_reset => zoom_reset_p,
               imem_we => imem_we, imem_waddr => imem_waddr, imem_wdata => imem_wdata,
               rendering_done => done_led);
 
