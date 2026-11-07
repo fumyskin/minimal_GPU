@@ -1,12 +1,17 @@
--- Top level: the whole GPU. The strip sequencer drives the SIMD core to render
--- the full 160x120 image into the framebuffer; the VGA scan-out (5->4x upscale
--- via >>2) displays it continuously. Single 100 MHz clock + /4 pixel enable, so
--- the dual-port framebuffer is the only crossing (write=core, read=scan-out) and
--- needs no arbitration. One static render after reset; no double buffer needed.
+-- Top level: the whole GPU, running on a single 25 MHz clock divided from the
+-- 100 MHz board oscillator. The display already produced 25 MHz pixels via a /4
+-- enable, so VGA output is unchanged -- but the compute core now gets 40 ns per
+-- cycle instead of 10 ns, so its long fetch->imem->regread->multiply->saturate
+-- ->writeback path closes with large margin. No datapath changes: image is
+-- bit-identical, render just takes ~4x longer (~240 ms, imperceptible).
+--
+-- 25 MHz is exactly the pixel rate, so pix_ce is tied high (every cycle = pixel).
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+library unisim;
+use unisim.vcomponents.all;
 
 entity mandelbrot_top is
   generic (
@@ -14,22 +19,24 @@ entity mandelbrot_top is
     N    : integer := 4
   );
   port (
-    clk_100       : in  std_logic;
+    clk_100       : in  std_logic;        -- 100 MHz board oscillator (Y9)
     rst           : in  std_logic;
-    btn_zoom_in   : in  std_logic;        -- pushbutton: zoom in on the fixed point
-    btn_zoom_reset: in  std_logic;        -- pushbutton: back to the full view
+    btn_zoom_in   : in  std_logic;
+    btn_zoom_reset: in  std_logic;
     vga_hs  : out std_logic;
     vga_vs  : out std_logic;
     vga_r   : out std_logic_vector(3 downto 0);
     vga_g   : out std_logic_vector(3 downto 0);
     vga_b   : out std_logic_vector(3 downto 0);
-    done_led : out std_logic              -- lights when the render is complete
+    done_led : out std_logic
   );
 end entity;
 
 architecture rtl of mandelbrot_top is
-  signal ce_cnt            : unsigned(1 downto 0) := (others => '0');
-  signal pix_ce            : std_logic;
+  -- clock divider 100 -> 25 MHz
+  signal div   : unsigned(1 downto 0) := (others => '0');
+  signal clk   : std_logic;                 -- 25 MHz system clock (everything runs here)
+  constant pix_ce : std_logic := '1';       -- every 25 MHz cycle is a pixel
 
   -- VGA timing / scan-out
   signal hs, vs, von       : std_logic;
@@ -53,44 +60,44 @@ architecture rtl of mandelbrot_top is
   -- debounced zoom pulses
   signal zoom_in_p, zoom_reset_p : std_logic;
 begin
-  -- 25 MHz pixel enable = 100 MHz / 4
+  ---------------------------------------------------------------- clock: 100 -> 25 MHz
   process (clk_100)
   begin
     if rising_edge(clk_100) then
-      if rst = '1' then ce_cnt <= (others => '0'); else ce_cnt <= ce_cnt + 1; end if;
+      div <= div + 1;                       -- div(1) is a 25 MHz, 50%-duty clock
     end if;
   end process;
-  pix_ce <= '1' when ce_cnt = 3 else '0';
+  u_clkbuf : BUFG port map (I => div(1), O => clk);   -- route it on a global buffer
 
   ---------------------------------------------------------------- zoom buttons
   u_db_in : entity work.debouncer
-    port map (clk => clk_100, din => btn_zoom_in, pulse => zoom_in_p);
+    port map (clk => clk, din => btn_zoom_in, pulse => zoom_in_p);
   u_db_rst : entity work.debouncer
-    port map (clk => clk_100, din => btn_zoom_reset, pulse => zoom_reset_p);
+    port map (clk => clk, din => btn_zoom_reset, pulse => zoom_reset_p);
 
   ---------------------------------------------------------------- compute side
   u_seq : entity work.strip_sequencer
     generic map (N => N, IMG_W => FB_W, IMG_H => 120,
                  X0 => -40846, Y0 => -19629, DXF => 358, DYF => 358, DXN => 1432,
-                 CXC => -12206, CYC => 1851,          -- fixed point (-0.745, 0.113)
+                 CXC => -12206, CYC => 1851,
                  P_CX0 => 2, P_DX => 3, P_CY0 => 6, P_FB => 26)
-    port map (clk => clk_100, rst => rst,
+    port map (clk => clk, rst => rst,
               core_done => core_done, core_start => core_start,
               zoom_in => zoom_in_p, zoom_reset => zoom_reset_p,
               imem_we => imem_we, imem_waddr => imem_waddr, imem_wdata => imem_wdata,
               rendering_done => done_led);
 
   u_core : entity work.compute_core
-    generic map (N => N, INIT_FILE => "imem_template.mem")
-    port map (clk => clk_100, rst => rst, start => core_start, done => core_done,
+    generic map (N => N, INIT_FILE => "C:\fpga\minimal_GPU\data\imem_template.mem")
+    port map (clk => clk, rst => rst, start => core_start, done => core_done,
               fb_we => core_fb_we, fb_addr => core_fb_addr, fb_data => core_fb_data,
               imem_we => imem_we, imem_waddr => imem_waddr, imem_wdata => imem_wdata);
 
-  ---------------------------------------------------------------- framebuffer (dual port)
+  ---------------------------------------------------------------- framebuffer (dual port, one clock)
   u_fb : entity work.framebuffer
     generic map (DATA_W => 8, DEPTH => FB_W * 120, ADDR_W => 15,
-                 INIT_FILE => "fb_zeros.mem")
-    port map (clk => clk_100,
+                 INIT_FILE => "C:\fpga\minimal_GPU\data\fb_zeros.mem")
+    port map (clk => clk,
               we    => core_fb_we,
               waddr => core_fb_addr(14 downto 0),
               wdata => core_fb_data,
@@ -100,41 +107,37 @@ begin
 
   ---------------------------------------------------------------- VGA scan-out
   u_timing : entity work.vga_timing
-    port map (clk => clk_100, rst => rst, pix_ce => pix_ce,
+    port map (clk => clk, rst => rst, pix_ce => pix_ce,
               hsync => hs, vsync => vs, video_on => von,
               px => px, py => py, frame_start => open);
 
-  -- 4x upscale: framebuffer pixel (px>>2, py>>2), row stride FB_W
   raddr <= to_unsigned(to_integer(shift_right(py, 2)) * FB_W
                        + to_integer(shift_right(px, 2)), 15);
 
-  process (clk_100)                         -- match 1-cycle BRAM read latency
+  process (clk)                             -- match 1-cycle BRAM read latency
   begin
-    if rising_edge(clk_100) then
-      if pix_ce = '1' then
-        hs_d <= hs; vs_d <= vs; von_d <= von;
-      end if;
+    if rising_edge(clk) then
+      hs_d <= hs; vs_d <= vs; von_d <= von;
     end if;
   end process;
 
   u_pal : entity work.palette_rom
+    generic map (INIT_FILE => "C:\fpga\minimal_GPU\data\palette.mem") 
     port map (index => fb_rdata, rgb => rgb);
 
-  process (clk_100)                         -- registered, aligned VGA outputs
+  process (clk)                             -- registered, aligned VGA outputs
   begin
-    if rising_edge(clk_100) then
-      if pix_ce = '1' then
-        vga_hs <= hs_d;
-        vga_vs <= vs_d;
-        if von_d = '1' then
-          vga_r <= rgb(11 downto 8);
-          vga_g <= rgb(7 downto 4);
-          vga_b <= rgb(3 downto 0);
-        else
-          vga_r <= (others => '0');
-          vga_g <= (others => '0');
-          vga_b <= (others => '0');
-        end if;
+    if rising_edge(clk) then
+      vga_hs <= hs_d;
+      vga_vs <= vs_d;
+      if von_d = '1' then
+        vga_r <= rgb(11 downto 8);
+        vga_g <= rgb(7 downto 4);
+        vga_b <= rgb(3 downto 0);
+      else
+        vga_r <= (others => '0');
+        vga_g <= (others => '0');
+        vga_b <= (others => '0');
       end if;
     end if;
   end process;

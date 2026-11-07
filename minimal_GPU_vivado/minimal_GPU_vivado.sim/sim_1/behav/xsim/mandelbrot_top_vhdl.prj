@@ -1,0 +1,13 @@
+# compile vhdl design source files
+vhdl xil_defaultlib  \
+"../../../../../hdl/simd/alu.vhd" \
+"../../../../../hdl/simd/compute_core.vhd" \
+"../../../../../hdl/simd/debouncer.vhd" \
+"../../../../../hdl/vga/framebuffer.vhd" \
+"../../../../../hdl/simd/strip_sequencer.vhd" \
+"../../../../../hdl/vga/vga_timing.vhd" \
+"../../../../../hdl/vga/palette_rom.vhd" \
+"../../../../../hdl/simd/mandelbrot_top.vhd" \
+
+# Do not sort compile order
+nosort

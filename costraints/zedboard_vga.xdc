@@ -5,6 +5,7 @@
 set_property PACKAGE_PIN Y9 [get_ports clk_100]
 set_property IOSTANDARD LVCMOS33 [get_ports clk_100]
 create_clock -period 10.000 -name clk_100 [get_ports clk_100]
+create_generated_clock -name clk25 -source [get_ports clk_100] -divide_by 4 [get_pins u_clkbuf/O]
 
 ## Reset on BTNC (centre push button, bank 34)
 ## Bank 34 voltage is set by jumper J18 (VADJ). Use LVCMOS18 for 1.8 V,
@@ -37,3 +38,6 @@ set_property IOSTANDARD LVCMOS33 [get_ports {vga_r[*] vga_g[*] vga_b[*] vga_hs v
 ## BTNU -> zoom in, BTND -> reset to full view
 set_property -dict {PACKAGE_PIN T18 IOSTANDARD LVCMOS25} [get_ports btn_zoom_in]
 set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS25} [get_ports btn_zoom_reset]
+
+## render-complete LED
+set_property -dict {PACKAGE_PIN T22 IOSTANDARD LVCMOS33} [get_ports done_led]

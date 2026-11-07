@@ -1,0 +1,1 @@
+--incr --debug "typical" --relax --mt "2" -L "xil_defaultlib" -L "secureip" --snapshot "mandelbrot_top_behav" "xil_defaultlib.mandelbrot_top" -log "elaborate.log" 

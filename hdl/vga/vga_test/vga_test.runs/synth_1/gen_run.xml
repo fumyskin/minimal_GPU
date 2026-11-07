@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenRun Id="synth_1" LaunchPart="xc7z020clg484-1" LaunchTime="1791120788" LaunchIncrCheckpoint="$PSRCDIR/utils_1/imports/synth_1/vga_top.dcp">
-  <File Type="PA-TCL" Name="vga_fb_top.tcl"/>
   <File Type="REPORTS-TCL" Name="vga_fb_top_reports.tcl"/>
-  <File Type="RDS-RDS" Name="vga_fb_top.vds"/>
-  <File Type="RDS-PROPCONSTRS" Name="vga_fb_top_drc_synth.rpt"/>
   <File Type="RDS-UTIL" Name="vga_fb_top_utilization_synth.rpt"/>
   <File Type="RDS-UTIL-PB" Name="vga_fb_top_utilization_synth.pb"/>
+  <File Type="PA-TCL" Name="vga_fb_top.tcl"/>
+  <File Type="RDS-RDS" Name="vga_fb_top.vds"/>
   <File Type="RDS-DCP" Name="vga_fb_top.dcp"/>
-  <File Type="VDS-TIMINGSUMMARY" Name="vga_fb_top_timing_summary_synth.rpt"/>
-  <File Type="VDS-TIMING-PB" Name="vga_fb_top_timing_summary_synth.pb"/>
   <FileSet Name="sources" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
     <Filter Type="Srcs"/>
     <File Path="$PPRDIR/../framebuffer.vhd">
