@@ -1,0 +1,275 @@
+%PDF-1.4
+1 0 obj
+<<
+  /Title    (mandelbrot_top)
+  /Author   (vzand)
+  /Producer (Concept Engineering GmbH)
+  /Creator  (Nlview 7.8.0 2024-04-26 e1825d835c VDI=44 GEI=38)
+  /CreationDate (D:20261110100109)
+>>
+endobj
+2 0 obj
+<<
+  /Type     /Catalog
+  /Pages    3 0 R
+  /Outlines 7 0 R
+  /PageMode /UseThumbs
+  /ViewerPreferences << /DisplayDocTitle true >>
+>>
+endobj
+4 0 obj
+<<
+  /Type     /Font
+  /Subtype  /Type1
+  /Name     /F1
+  /BaseFont /Helvetica
+  /Encoding /MacRomanEncoding
+>>
+endobj
+5 0 obj
+<<
+  /ExtGState  6 0 R
+  /Font       << /F1 4 0 R >>
+  /ColorSpace << /PCS [/Pattern /DeviceRGB] >>
+  /Pattern    8 0 R
+  /XObject    9 0 R
+>>
+endobj
+%
+% Schematic page 1
+% (user space scaling 0.432)
+%
+10 0 obj
+<<
+  /Type      /Page
+  /Parent    3 0 R
+  /Resources 5 0 R
+  /Contents  11 0 R
+  /MediaBox  [0 0 792 612]
+  /Rotate    270
+>>
+endobj
+11 0 obj
+<<
+  /Length 471
+>>
+stream
+1 0 0 1 0 101.592 cm
+1 0 0 1 28.8 28.8 cm
+0.432 0 0 -0.432 0 0 cm
+1 0 0 1 0 -813 cm
+0 0 1700 813 re
+W n
+/GS gs
+1 0 0 1 -1143 4 cm
+q
+1.000 1.000 1.000 rg
+/GSa0 gs
+1143 -4 1700 814 re
+f
+Q
+[] 0 d
+1 w
+0.098 0.706 0.000 RG
+/GSA0 gs
+0.000 0.000 0.000 RG
+2 w
+0.098 0.706 0.000 RG
+1 w
+0.000 0.000 0.000 RG
+2 w
+0.098 0.706 0.000 RG
+1 w
+2640 1010 m
+2750 1010 l
+2750 250 l
+3020 250 l
+S
+2640 1150 m
+2810 1150 l
+2810 100 l
+3020 100 l
+S
+2640 1190 m
+2790 1190 l
+2790 700 l
+3020 700 l
+S
+endstream
+endobj
+3 0 obj
+<<
+  /Type    /Pages
+  /Kids
+  [
+  10 0 R
+  ]
+  /Count   1
+  /ProcSet [ /PDF ]
+>>
+endobj
+6 0 obj
+<<
+  /GS << /Type /ExtGState
+         /LC    0
+         /LJ    0
+         /ML    4.0
+         /ca    1.0
+         /CA    1.0
+         /AIS   false
+         /SMask /None
+  >>
+  /GSa0 << /Type /ExtGState /ca 1 >>
+  /GSA0 << /Type /ExtGState /CA 1 >>
+>>
+endobj
+13 0 obj
+<<
+  /Title  (instances)
+  /C      [0.0 0.4 0.0]
+  /F      1
+  /Parent 12 0 R
+  /First  0 0 R
+  /Last   0 0 R
+  /Count  0
+  /Next   14 0 R
+>>
+endobj
+14 0 obj
+<<
+  /Title  (ports)
+  /C      [0.0 0.4 0.0]
+  /F      1
+  /Parent 12 0 R
+  /First  0 0 R
+  /Last   0 0 R
+  /Count  0
+  /Prev   13 0 R
+  /Next   15 0 R
+>>
+endobj
+15 0 obj
+<<
+  /Title  (portBuses)
+  /C      [0.0 0.4 0.0]
+  /F      1
+  /Parent 12 0 R
+  /First  0 0 R
+  /Last   0 0 R
+  /Count  0
+  /Prev   14 0 R
+  /Next   16 0 R
+>>
+endobj
+17 0 obj
+<<
+  /Title  (u_fb_n_0)
+  /C      [0.0 0.0 0.4]
+  /Dest   [10 0 R /FitR 675 130 763 372]
+  /Parent 16 0 R
+  /Next   18 0 R
+>>
+endobj
+18 0 obj
+<<
+  /Title  (u_fb_n_10)
+  /C      [0.0 0.0 0.4]
+  /Dest   [10 0 R /FitR 675 130 763 177]
+  /Parent 16 0 R
+  /Prev   17 0 R
+  /Next   19 0 R
+>>
+endobj
+19 0 obj
+<<
+  /Title  (u_fb_n_8)
+  /C      [0.0 0.0 0.4]
+  /Dest   [10 0 R /FitR 675 130 763 437]
+  /Parent 16 0 R
+  /Prev   18 0 R
+>>
+endobj
+16 0 obj
+<<
+  /Title  (nets)
+  /C      [0.0 0.4 0.0]
+  /F      1
+  /Parent 12 0 R
+  /First  17 0 R
+  /Last   19 0 R
+  /Count  3
+  /Prev   15 0 R
+  /Next   20 0 R
+>>
+endobj
+20 0 obj
+<<
+  /Title  (netBundles)
+  /C      [0.0 0.4 0.0]
+  /F      1
+  /Parent 12 0 R
+  /First  0 0 R
+  /Last   0 0 R
+  /Count  0
+  /Prev   16 0 R
+>>
+endobj
+12 0 obj
+<<
+  /Title  (Schematic page 1)
+  /C      [0.4 0.0 0.0]
+  /Dest   [10 0 R /Fit]
+  /Parent 7 0 R
+  /First  13 0 R
+  /Last   20 0 R
+  /Count  5
+>>
+endobj
+8 0 obj
+<<
+>>
+endobj
+9 0 obj
+<<
+>>
+endobj
+7 0 obj
+<<
+  /Type  /Outline
+  /First 12 0 R
+  /Last  12 0 R
+  /Count 1
+>>
+endobj
+xref
+0 21
+0000000000 65535 f 
+0000000009 00000 n 
+0000000216 00000 n 
+0000001370 00000 n 
+0000000366 00000 n 
+0000000493 00000 n 
+0000001467 00000 n 
+0000003215 00000 n 
+0000003173 00000 n 
+0000003194 00000 n 
+0000000703 00000 n 
+0000000846 00000 n 
+0000003012 00000 n 
+0000001733 00000 n 
+0000001891 00000 n 
+0000002062 00000 n 
+0000002681 00000 n 
+0000002237 00000 n 
+0000002379 00000 n 
+0000002539 00000 n 
+0000002853 00000 n 
+trailer
+<<
+  /Size 21
+  /Info 1 0 R
+  /Root 2 0 R
+>>
+startxref
+3297
+%%EOF
