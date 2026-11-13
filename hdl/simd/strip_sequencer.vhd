@@ -9,7 +9,7 @@
 --   DXF' = DXF>>1 ;  X0' = CXC - (W/2)*DXF' ;  Y0' = CYC - (H/2)*DYF'
 -- Reset restores the base view. Zoom-in is ignored once DXF = 1 (Q4.14 limit:
 -- ~8 levels / 256x; deeper needs a wider word).
---
+-- actually : 358 → 179 → 89 → 44 → 22 → 11 → 5 → 2 → 1 KEEP THIS IN MIND (it's basically x8)
 -- With no zoom pulses the design renders once and holds -- identical to the
 -- non-zoom sequencer, so the integration testbench still passes unchanged.
 
@@ -57,6 +57,7 @@ architecture rtl of strip_sequencer is
   signal pcnt    : integer range 0 to 3 := 0;      -- 4 param words per strip
 
   -- live view parameters (registers; init to the base generics)
+  -- s = state (ie, current)
   signal sx0  : signed(17 downto 0) := to_signed(X0, 18);
   signal sy0  : signed(17 downto 0) := to_signed(Y0, 18);
   signal sdxf : signed(17 downto 0) := to_signed(DXF, 18);
@@ -73,6 +74,11 @@ architecture rtl of strip_sequencer is
   constant LI_V8 : unsigned(31 downto 0) := x"06000000";   -- LI V8, imm (per-lane step)
   constant ST_V7 : unsigned(31 downto 0) := x"2C1C0000";   -- STORE V7, base
 
+  -- auxiliary function
+  -- ORs the 18-bit immediate into the low bits of the given template.
+  -- The template already holds the opcode and the destination register. 
+  -- V1 = 0x04400000, V8 = 0x06000000, so the destination register sits in bits 25:22. 
+  -- unsigned(v) reinterprets the two’s-complement bits, so the core has to sign-extend from bit 17.
   function hw_li(tmpl : unsigned(31 downto 0); v : signed(17 downto 0))
     return std_logic_vector is
   begin
@@ -88,6 +94,7 @@ architecture rtl of strip_sequencer is
   end function;
 begin
   process (clk)
+    -- n = next (ie, next dx, next dy, next y0,...)
     variable ndxf, ndyf, nx0, ny0, ndxn : signed(17 downto 0);
     -- also update the DX immediate the kernel loads (per-lane step = DXF)
   begin
@@ -98,10 +105,16 @@ begin
 
       if rst = '1' then
         state <= S_PATCH;
-        row <= 0; col0 <= 0; pcnt <= 0;
-        sx0 <= to_signed(X0,18); sy0 <= to_signed(Y0,18);
-        sdxf <= to_signed(DXF,18); sdyf <= to_signed(DYF,18); sdxn <= to_signed(DXN,18);
-        cx0 <= to_signed(X0,18); cy <= to_signed(Y0,18);
+        row <= 0; 
+        col0 <= 0; 
+        pcnt <= 0;
+        sx0 <= to_signed(X0,18); 
+        sy0 <= to_signed(Y0,18);
+        sdxf <= to_signed(DXF,18); 
+        sdyf <= to_signed(DYF,18); 
+        sdxn <= to_signed(DXN,18);
+        cx0 <= to_signed(X0,18); 
+        cy <= to_signed(Y0,18);
         fb_base <= (others => '0');
       else
         case state is

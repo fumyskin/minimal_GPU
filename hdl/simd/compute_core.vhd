@@ -64,7 +64,7 @@ architecture rtl of compute_core is
   type rom_t is array(0 to ROM_DEPTH - 1) of std_logic_vector(31 downto 0);
 
 
-  -- runs once , before simulation and synthesis 
+  -- 1) runs once , before simulation and synthesis 
   -- reads imem.mem -> turns each line of 8 hex characters into 32 bit word from isntruction memory
   -- 
   impure function init_rom(fn : string) return rom_t is
@@ -97,7 +97,7 @@ architecture rtl of compute_core is
     return m;
   end function;
 
-  -- instruction memory: a RAM (initialized from the hex .mem) so the sequencer
+  -- instruction memory: a ROM (initialized from the hex .mem) so the sequencer
   -- can patch the per-strip parameter words while the core is idle.
   signal imem : rom_t := init_rom(INIT_FILE);
 
